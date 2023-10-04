@@ -26,4 +26,4 @@ Check `test_cases.sh` and `src/setup/main.rs` for details
 
 Run the following command to check for the results for each case
 
-`./test_cases.sh'
+`./test_cases.sh`
