@@ -30,8 +30,14 @@ struct Opts {
 enum SubCommand {
     /// Generate a SNARK proof
     Prove(ProveOpts),
+    ProveChangedInputs(ProveOpts),
+    ProveChangedParams(ProveOpts),
+    ProveChangedParamsInputs(ProveOpts),
     /// Verify a SNARK proof
     Verify(VerifyOpts),
+    VerifyChangedInputs(VerifyOpts),
+    VerifyChangedParams(VerifyOpts),
+    VerifyChangedParamsInputs(VerifyOpts),
     /// Generate trusted setup parameters
     Setup(SetupOpts),
     /// Generate verifier smart contract
@@ -131,8 +137,8 @@ fn delegated_deposit_circuit<C:CS<Fr=Fr>>(public: CDelegatedDepositBatchPub<C>, 
 }
 
 fn cli_setup(o:SetupOpts) {
-    let params_path = o.params.unwrap_or(format!("{}_params.bin", o.circuit));
-    let vk_path = o.vk.unwrap_or(format!("{}_verification_key.json", o.circuit));
+    let params_path = o.params.unwrap_or(format!("./sample_data/{}_params.bin", o.circuit));
+    let vk_path = o.vk.unwrap_or(format!("./sample_data/{}_verification_key.json", o.circuit));
     
 
     let params = match o.circuit.as_str() {
@@ -153,9 +159,9 @@ fn cli_setup(o:SetupOpts) {
 
 fn cli_generate_verifier(o: GenerateVerifierOpts) {
     let circuit = o.circuit.clone();
-    let vk_path = o.vk.unwrap_or(format!("{}_verification_key.json", circuit));
+    let vk_path = o.vk.unwrap_or(format!("./sample_data/{}_verification_key.json", circuit));
     let contract_name = o.contract_name.unwrap_or(format!("{}_verifier", circuit).to_case(Case::Pascal));
-    let solidity_path = o.solidity.unwrap_or(format!("{}_verifier.sol", circuit));
+    let solidity_path = o.solidity.unwrap_or(format!("./sample_data/{}_verifier.sol", circuit));
 
 
     let vk_str = std::fs::read_to_string(vk_path).unwrap();
@@ -166,9 +172,57 @@ fn cli_generate_verifier(o: GenerateVerifierOpts) {
 }
 
 fn cli_verify(o:VerifyOpts) {
-    let proof_path = o.proof.unwrap_or(format!("{}_proof.json", o.circuit));
-    let vk_path = o.vk.unwrap_or(format!("{}_verification_key.json", o.circuit));
-    let inputs_path = o.inputs.unwrap_or(format!("{}_inputs.json", o.circuit));
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/{}_proof.json", o.circuit));
+    let vk_path = o.vk.unwrap_or(format!("./sample_data/{}_verification_key.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/{}_inputs.json", o.circuit));
+
+    let vk_str = std::fs::read_to_string(vk_path).unwrap();
+    let proof_str = std::fs::read_to_string(proof_path).unwrap();
+    let public_inputs_str = std::fs::read_to_string(inputs_path).unwrap();
+
+    let vk:VK<Bn256> = serde_json::from_str(&vk_str).unwrap();
+    let proof:Proof<Bn256> = serde_json::from_str(&proof_str).unwrap();
+    let public_inputs:Vec<Num<Fr>> = serde_json::from_str(&public_inputs_str).unwrap();
+
+    println!("Verify result is {}.", verify(&vk, &proof, &public_inputs))
+}
+
+fn cli_verify_changed_inputs(o:VerifyOpts) {
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/changed_inputs/{}_proof.json", o.circuit));
+    let vk_path = o.vk.unwrap_or(format!("./sample_data/{}_verification_key.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/changed_inputs/{}_inputs.json", o.circuit));
+
+    let vk_str = std::fs::read_to_string(vk_path).unwrap();
+    let proof_str = std::fs::read_to_string(proof_path).unwrap();
+    let public_inputs_str = std::fs::read_to_string(inputs_path).unwrap();
+
+    let vk:VK<Bn256> = serde_json::from_str(&vk_str).unwrap();
+    let proof:Proof<Bn256> = serde_json::from_str(&proof_str).unwrap();
+    let public_inputs:Vec<Num<Fr>> = serde_json::from_str(&public_inputs_str).unwrap();
+
+    println!("Verify result is {}.", verify(&vk, &proof, &public_inputs))
+}
+
+fn cli_verify_changed_params(o:VerifyOpts) {
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/changed_params/{}_proof.json", o.circuit));
+    let vk_path = o.vk.unwrap_or(format!("./sample_data/{}_verification_key.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/changed_params/{}_inputs.json", o.circuit));
+
+    let vk_str = std::fs::read_to_string(vk_path).unwrap();
+    let proof_str = std::fs::read_to_string(proof_path).unwrap();
+    let public_inputs_str = std::fs::read_to_string(inputs_path).unwrap();
+
+    let vk:VK<Bn256> = serde_json::from_str(&vk_str).unwrap();
+    let proof:Proof<Bn256> = serde_json::from_str(&proof_str).unwrap();
+    let public_inputs:Vec<Num<Fr>> = serde_json::from_str(&public_inputs_str).unwrap();
+
+    println!("Verify result is {}.", verify(&vk, &proof, &public_inputs))
+}
+
+fn cli_verify_changed_params_inputs(o:VerifyOpts) {
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/changed_params_inputs/{}_proof.json", o.circuit));
+    let vk_path = o.vk.unwrap_or(format!("./sample_data/{}_verification_key.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/changed_params_inputs/{}_inputs.json", o.circuit));
 
     let vk_str = std::fs::read_to_string(vk_path).unwrap();
     let proof_str = std::fs::read_to_string(proof_path).unwrap();
@@ -182,7 +236,7 @@ fn cli_verify(o:VerifyOpts) {
 }
 
 fn cli_generate_test_data(o:GenerateTestDataOpts) {
-    let object_path = o.object.unwrap_or(format!("{}_object.json", o.circuit));
+    let object_path = o.object.unwrap_or(format!("./sample_data/{}_object.json", o.circuit));
     let mut rng = OsRng::default();
     let data_str = match o.circuit.as_str() {
         "transfer" => {
@@ -208,10 +262,124 @@ fn cli_generate_test_data(o:GenerateTestDataOpts) {
 }
 
 fn cli_prove(o:ProveOpts) {
-    let params_path = o.params.unwrap_or(format!("{}_params.bin", o.circuit));
-    let object_path = o.object.unwrap_or(format!("{}_object.json", o.circuit));
-    let proof_path = o.proof.unwrap_or(format!("{}_proof.json", o.circuit));
-    let inputs_path = o.inputs.unwrap_or(format!("{}_inputs.json", o.circuit));
+    let params_path = o.params.unwrap_or(format!("./sample_data/{}_params.bin", o.circuit));
+    let object_path = o.object.unwrap_or(format!("./sample_data/{}_object.json", o.circuit));
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/{}_proof.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/{}_inputs.json", o.circuit));
+
+    let params_data = std::fs::read(params_path).unwrap();
+    let mut params_data_cur = &params_data[..];
+
+    let params = Parameters::<Bn256>::read(&mut params_data_cur, false, false).unwrap();
+    let object_str = std::fs::read_to_string(object_path).unwrap();
+
+    let (inputs, snark_proof) = match o.circuit.as_str() {
+        "transfer" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, tx_circuit)
+        },
+        "tree_update" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, tree_circuit)
+        },
+        "delegated_deposit" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, delegated_deposit_circuit)  
+        },
+        _ => panic!("Wrong cicruit parameter")
+    };
+
+
+    let proof_str = serde_json::to_string_pretty(&snark_proof).unwrap();
+    let inputs_str = serde_json::to_string_pretty(&inputs).unwrap();
+
+    std::fs::write(proof_path, &proof_str.into_bytes()).unwrap();
+    std::fs::write(inputs_path, &inputs_str.into_bytes()).unwrap();
+    
+    println!("Proved")
+}
+
+fn cli_prove_changed_inputs(o:ProveOpts) {
+    let params_path = o.params.unwrap_or(format!("./sample_data/{}_params.bin", o.circuit));
+    let object_path = o.object.unwrap_or(format!("./sample_data/changed_inputs/{}_object.json", o.circuit));
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/changed_inputs/{}_proof.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/changed_inputs/{}_inputs.json", o.circuit));
+
+    let params_data = std::fs::read(params_path).unwrap();
+    let mut params_data_cur = &params_data[..];
+
+    let params = Parameters::<Bn256>::read(&mut params_data_cur, false, false).unwrap();
+    let object_str = std::fs::read_to_string(object_path).unwrap();
+
+    let (inputs, snark_proof) = match o.circuit.as_str() {
+        "transfer" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, tx_circuit)
+        },
+        "tree_update" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, tree_circuit)
+        },
+        "delegated_deposit" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, delegated_deposit_circuit)  
+        },
+        _ => panic!("Wrong cicruit parameter")
+    };
+
+
+    let proof_str = serde_json::to_string_pretty(&snark_proof).unwrap();
+    let inputs_str = serde_json::to_string_pretty(&inputs).unwrap();
+
+    std::fs::write(proof_path, &proof_str.into_bytes()).unwrap();
+    std::fs::write(inputs_path, &inputs_str.into_bytes()).unwrap();
+    
+    println!("Proved")
+}
+
+fn cli_prove_changed_params(o:ProveOpts) {
+    let params_path = o.params.unwrap_or(format!("./sample_data/changed_params/{}_params.bin", o.circuit));
+    let object_path = o.object.unwrap_or(format!("./sample_data/{}_object.json", o.circuit));
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/changed_params/{}_proof.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/changed_params/{}_inputs.json", o.circuit));
+
+    let params_data = std::fs::read(params_path).unwrap();
+    let mut params_data_cur = &params_data[..];
+
+    let params = Parameters::<Bn256>::read(&mut params_data_cur, false, false).unwrap();
+    let object_str = std::fs::read_to_string(object_path).unwrap();
+
+    let (inputs, snark_proof) = match o.circuit.as_str() {
+        "transfer" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, tx_circuit)
+        },
+        "tree_update" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, tree_circuit)
+        },
+        "delegated_deposit" => {
+            let (public, secret) = serde_json::from_str(&object_str).unwrap();
+            prove(&params, &public, &secret, delegated_deposit_circuit)  
+        },
+        _ => panic!("Wrong cicruit parameter")
+    };
+
+
+    let proof_str = serde_json::to_string_pretty(&snark_proof).unwrap();
+    let inputs_str = serde_json::to_string_pretty(&inputs).unwrap();
+
+    std::fs::write(proof_path, &proof_str.into_bytes()).unwrap();
+    std::fs::write(inputs_path, &inputs_str.into_bytes()).unwrap();
+    
+    println!("Proved")
+}
+
+fn cli_prove_changed_params_inputs(o:ProveOpts) {
+    let params_path = o.params.unwrap_or(format!("./sample_data/changed_params_inputs/{}_params.bin", o.circuit));
+    let object_path = o.object.unwrap_or(format!("./sample_data/changed_params_inputs/{}_object.json", o.circuit));
+    let proof_path = o.proof.unwrap_or(format!("./sample_data/changed_params_inputs/{}_proof.json", o.circuit));
+    let inputs_path = o.inputs.unwrap_or(format!("./sample_data/changed_params_inputs/{}_inputs.json", o.circuit));
 
     let params_data = std::fs::read(params_path).unwrap();
     let mut params_data_cur = &params_data[..];
@@ -250,7 +418,13 @@ pub fn main() {
     let opts: Opts = Opts::parse();
     match opts.command {
         SubCommand::Prove(o) => cli_prove(o),
+        SubCommand::ProveChangedInputs(o) => cli_prove_changed_inputs(o),
+        SubCommand::ProveChangedParams(o) => cli_prove_changed_params(o),
+        SubCommand::ProveChangedParamsInputs(o) => cli_prove_changed_params_inputs(o),
         SubCommand::Verify(o) => cli_verify(o),
+        SubCommand::VerifyChangedInputs(o) => cli_verify_changed_inputs(o),
+        SubCommand::VerifyChangedParams(o) => cli_verify_changed_params(o),
+        SubCommand::VerifyChangedParamsInputs(o) => cli_verify_changed_params_inputs(o),
         SubCommand::Setup(o) => cli_setup(o),
         SubCommand::GenerateVerifier(o) => cli_generate_verifier(o),
         SubCommand::GenerateTestData(o) => cli_generate_test_data(o)
